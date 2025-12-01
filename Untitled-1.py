@@ -1,112 +1,80 @@
 """
-Gestor de stock simple.
-Maneja una lista de diccionarios con referencia y valor.
+Sistema de Gremio de Heroes.
+Gestiona una lista de diccionarios (nombre y nivel).
 """
 
-# Estructura principal
-almacen = []
+heroes = []
 
-def alta_articulo():
-    """Pide datos, valida y agrega al final de la lista."""
-    print("\n>> NUEVO REGISTRO")
-    ref = input("Referencia del articulo: ")
-    
-    # Validacion requerida: campo no vacio
-    if len(ref) == 0:
-        print("Error: Referencia vacia.")
+def reclutar():
+    """Pide nombre y nivel. Valida entrada."""
+    nom = input("Nombre: ")
+    # Validacion basica
+    if not nom:
+        print("Nombre obligatorio.")
         return
 
     try:
-        val = float(input("Valor numerico: "))
-        # Crea el diccionario
-        item = {"ref": ref, "val": val}
-        almacen.append(item)
-        print(" Guardado.")
+        # Validacion int
+        lv = int(input("Nivel: "))
+        heroes.append({"nom": nom, "lv": lv})
+        print("Añadido.")
     except ValueError:
-        # Control de errores 1
-        print(" Error: No es un numero valido.")
+        print("Error: El nivel debe ser numero.")
 
-def localizar_articulo():
-    """Busca por referencia exacta e imprime."""
-    print("\n>> BUSQUEDA")
-    b = input("Cual buscas?: ")
-    for x in almacen:
-        if x["ref"] == b:
-            print(f" Encontrado: {x['ref']} vale {x['val']}")
+def buscar():
+    """Busca heroe por nombre."""
+    b = input("A quien buscas?: ")
+    for h in heroes:
+        if h["nom"] == b:
+            print(f"Heroe: {h['nom']}, Nivel: {h['lv']}")
             return
-    print("❌ No existe.")
+    print("No encontrado.")
 
-def editar_articulo():
-    """Busca y permite cambiar el valor numérico."""
-    print("\n>> EDICION")
-    b = input("Cual edito?: ")
-    for x in almacen:
-        if x["ref"] == b:
+def entrenar():
+    """Modifica el nivel de un heroe."""
+    b = input("A quien entrenas?: ")
+    for h in heroes:
+        if h["nom"] == b:
             try:
-                nuevo = float(input("Nuevo valor: "))
-                x["val"] = nuevo
-                print("✅ Hecho.")
+                nuevo = int(input("Nuevo nivel: "))
+                h["lv"] = nuevo
+                print("Nivel actualizado.")
             except ValueError:
-                # Control de errores 2
-                print(" Error de formato.")
+                print("Error de numero.")
             return
-    print(" Referencia no encontrada.")
+    print("No encontrado.")
 
-def borrar_articulo():
-    """Elimina el elemento si coincide la referencia."""
-    print("\n>> BORRADO")
-    b = input("Cual borro?: ")
-    for x in almacen:
-        if x["ref"] == b:
-            almacen.remove(x)
-            print("🗑️ Borrado.")
+def expulsar():
+    """Elimina heroe de la lista."""
+    b = input("A quien echas?: ")
+    for h in heroes:
+        if h["nom"] == b:
+            heroes.remove(h)
+            print("Expulsado.")
             return
-    print(" No esta en la lista.")
+    print("No encontrado.")
 
-def listar_todo():
-    """Vuelca el contenido de la lista."""
-    print("\n>> CONTENIDO ACTUAL:")
-    if not almacen:
-        print("Lista vacia.")
-    print("-" * 20)
-    for x in almacen:
-        # Formato simple sin tablas complejas
-        print(f" Ref: {x['ref']} | Val: {x['val']}")
-    print("-" * 20)
+def ver_todos():
+    """Muestra la lista completa."""
+    print("LISTA DEL GREMIO:")
+    if not heroes:
+        print("Vacio.")
+    for h in heroes:
+        print(f"- {h['nom']} (Lv {h['lv']})")
 
-def ejecutar_menu():
-    run = True
-    while run:
-        # MENÚ VISTOSO HECHO CON CARACTERES
-        print("\n" + "█" * 30)
-        print("█    CONTROL DE ALMACEN      █")
-        print("█" * 30)
-        print("█  [1] Nuevo Articulo        █")
-        print("█  [2] Buscar Articulo       █")
-        print("█  [3] Editar Valor          █")
-        print("█  [4] Borrar Articulo       █")
-        print("█  [5] Ver Todo              █")
-        print("█                            █")
-        print("█  [6] Salir                 █")
-        print("█" * 30)
-        
-        op = input("\nElige una opcion > ")
+def menu():
+    while True:
+        # Menu simple en una linea
+        print("\n1.Reclutar 2.Buscar 3.Entrenar 4.Expulsar 5.Ver 6.Salir")
+        op = input("Opcion: ")
 
-        if op == "1":
-            alta_articulo()
-        elif op == "2":
-            localizar_articulo()
-        elif op == "3":
-            editar_articulo()
-        elif op == "4":
-            borrar_articulo()
-        elif op == "5":
-            listar_todo()
-        elif op == "6":
-            print("Cerrando sistema...")
-            run = False
-        else:
-            print("Opcion incorrecta.")
+        if op == "1": reclutar()
+        elif op == "2": buscar()
+        elif op == "3": entrenar()
+        elif op == "4": expulsar()
+        elif op == "5": ver_todos()
+        elif op == "6": break
+        else: print("Opcion mal.")
 
 if __name__ == "__main__":
-    ejecutar_menu()
+    menu()
