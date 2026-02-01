@@ -89,7 +89,7 @@ def buscar_elemento(lista_heroes):
 
 def modificar_elemento(lista_heroes, herramientas):
     print("\n--- ENTRENAR ---")
-    buscado = input("¿A quién entrenas?: ")
+    buscado = input("¿A quién modificas?: ")
     
     for h in lista_heroes:
         if h.nombre.lower() == buscado.lower():
