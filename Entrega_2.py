@@ -1,152 +1,131 @@
 import json
 import logging
 
-# --- CONFIGURACIÓN DEL LOGGING ---
+# Configuro el log para que guarde lo que pasa en el programa
 logging.basicConfig(
     filename='registro_gremio.log',
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    datefmt='%H:%M:%S'
+    format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-# Creamos una clase para que cada héroe sea un "objeto" con sus propios datos
+# Clase para el objeto Héroe (el molde)
 class Heroe:
     def __init__(self, nombre, nivel):
-        self.nombre = nombre  # Guardamos el nombre en el objeto
-        self.nivel = nivel    # Guardamos el nivel en el objeto
+        self.nombre = nombre
+        self.nivel = nivel
 
-# Clase para agrupar las funciones que manejan el archivo JSON
+# Clase para manejar el archivo JSON y no tener las funciones sueltas
 class GestionGremio:
     def __init__(self):
-        self.NOMBRE_FICHERO = "datos_gremio.json"
+        self.archivo = "datos_gremio.json"
 
-    def cargar_datos_json(self):
-        """Lee el JSON y convierte los diccionarios en una lista de objetos Heroe."""
+    def cargar(self):
         try:
-            fichero = open(self.NOMBRE_FICHERO, 'r')
-            datos_viejos = json.load(fichero)
-            fichero.close()
+            f = open(self.archivo, 'r')
+            datos = json.load(f)
+            f.close()
             
-            # Pasamos los datos del JSON a nuestra lista de objetos
-            lista_objetos = []
-            for d in datos_viejos:
-                lista_objetos.append(Heroe(d['nombre'], d['nivel']))
-            
-            logging.info("Datos cargados correctamente.")
-            return lista_objetos
+            # Paso los diccionarios del JSON a mi lista de objetos
+            lista = []
+            for d in datos:
+                lista.append(Heroe(d['nombre'], d['nivel']))
+            return lista
         except:
-            logging.info("Archivo no encontrado. Empezamos lista nueva.")
+            # Si no hay archivo, devuelvo la lista vacía para empezar
             return []
 
-    def guardar_datos_json(self, lista_heroes):
-        """Convierte los objetos Heroe a diccionarios para poder guardarlos en el JSON."""
+    def guardar(self, lista_heroes):
         try:
-            fichero = open(self.NOMBRE_FICHERO, 'w')
-            datos_convertidos = []
+            f = open(self.archivo, 'w')
+            # El JSON solo entiende diccionarios, así que convierto los objetos
+            datos_finales = []
             for h in lista_heroes:
-                # El JSON no entiende de objetos, así que se lo pasamos como diccionario
-                datos_convertidos.append({"nombre": h.nombre, "nivel": h.nivel})
+                datos_finales.append({"nombre": h.nombre, "nivel": h.nivel})
             
-            json.dump(datos_convertidos, fichero, indent=4)
-            fichero.close()
+            json.dump(datos_finales, f, indent=4)
+            f.close()
         except:
-            print("Error al guardar.")
-            logging.error("Fallo crítico al intentar guardar en disco.")
+            print("Error al guardar en el archivo.")
 
-# --- FUNCIONES DEL GREMIO ---
+# --- FUNCIONES DEL PROGRAMA ---
 
-def insertar_elemento(lista_heroes, herramientas):
-    print("\n--- RECLUTAR ---")
-    nombre = input("Nombre del héroe: ")
-    if nombre == "": return
+def añadir_heroe(lista, gestor):
+    print("\n--- NUEVO RECLUTA ---")
+    nom = input("Nombre: ")
+    if nom != "":
+        try:
+            niv = int(input("Nivel: "))
+            nuevo = Heroe(nom, niv)
+            lista.append(nuevo)
+            gestor.guardar(lista)
+            print("Guardado con éxito.")
+        except:
+            print("Error: El nivel tiene que ser un número.")
 
-    try:
-        nivel = int(input("Nivel inicial: "))
-        # Creamos un nuevo objeto Heroe y lo añadimos a la lista
-        nuevo = Heroe(nombre, nivel)
-        lista_heroes.append(nuevo)
-        
-        herramientas.guardar_datos_json(lista_heroes)
-        print("Añadido con éxito.")
-        logging.info(f"Nuevo recluta: {nombre}")
-    except ValueError:
-        print("Error: El nivel debe ser un número.")
-
-def buscar_elemento(lista_heroes):
-    print("\n--- BUSCAR ---")
+def buscar_heroe(lista):
+    print("\n--- BUSCADOR ---")
     buscado = input("¿A quién buscas?: ")
-    encontrado = False
-    
-    for h in lista_heroes:
-        # Ahora usamos h.nombre (atributo del objeto) en vez de h["nombre"]
+    for h in lista:
         if h.nombre.lower() == buscado.lower():
-            print(f"Encontrado: {h.nombre} (Lv {h.nivel})")
-            encontrado = True
-            break
-            
-    if not encontrado:
-        print("No está en la lista.")
+            print(f"Encontrado: {h.nombre} (Nivel {h.nivel})")
+            return # Salgo de la función si lo encuentro
+    print("No se ha encontrado.")
 
-def modificar_elemento(lista_heroes, herramientas):
-    print("\n--- ENTRENAR ---")
-    buscado = input("¿A quién modificas?: ")
-    
-    for h in lista_heroes:
+def entrenar_heroe(lista, gestor):
+    print("\n--- ENTRENAMIENTO ---")
+    buscado = input("¿A quién quieres subir de nivel?: ")
+    for h in lista:
         if h.nombre.lower() == buscado.lower():
             try:
-                nuevo_nivel = int(input("Nuevo nivel: "))
-                h.nivel = nuevo_nivel # Cambiamos el nivel directamente en el objeto
-                herramientas.guardar_datos_json(lista_heroes)
+                nuevo_niv = int(input("Nuevo nivel: "))
+                h.nivel = nuevo_niv
+                gestor.guardar(lista)
                 print("Nivel actualizado.")
                 return
-            except ValueError:
-                print("Error de número.")
+            except:
+                print("Número no válido.")
                 return
-    print("No encontrado.")
+    print("Héroe no encontrado.")
 
-def eliminar_elemento(lista_heroes, herramientas):
+def expulsar_heroe(lista, gestor):
     print("\n--- EXPULSAR ---")
-    buscado = input("¿A quién expulsas?: ")
-    
-    for h in lista_heroes:
+    buscado = input("¿A quién echamos?: ")
+    for h in lista:
         if h.nombre.lower() == buscado.lower():
-            lista_heroes.remove(h) # Quitamos el objeto de la lista
-            herramientas.guardar_datos_json(lista_heroes)
-            print("Expulsado.")
-            logging.warning(f"Eliminado: {buscado}")
+            lista.remove(h)
+            gestor.guardar(lista)
+            print("Eliminado del gremio.")
             return
-    print("No existe.")
+    print("No existe ese nombre.")
 
-def mostrar_todos(lista_heroes):
-    print("\n--- LISTA ---")
-    if not lista_heroes:
-        print("Gremio vacío.")
+def ver_gremio(lista):
+    print("\n--- MIEMBROS ACTUALES ---")
+    if len(lista) == 0:
+        print("No hay nadie en el gremio.")
     else:
-        for h in lista_heroes:
-            # Imprimimos los datos usando los puntos (.) para acceder a las variables del objeto
-            print(f"- {h.nombre} (Nivel {h.nivel})")
+        for h in lista:
+            print(f"- {h.nombre} | Nivel: {h.nivel}")
 
-# --- MENÚ ---
+# --- INICIO DEL PROGRAMA ---
 
 def menu():
-    # 'herramientas' es el objeto que tiene las funciones de guardar/cargar
-    herramientas = GestionGremio()
-    mis_heroes = herramientas.cargar_datos_json()
+    gestor = GestionGremio()
+    mis_heroes = gestor.cargar()
     
     while True:
-        print("\n1.Añadir 2.Buscar 3.Modificar 4.Eliminar 5.Ver 6.Salir")
-        op = input("Opción: ")
+        print("\n1.Añadir | 2.Buscar | 3.Entrenar | 4.Expulsar | 5.Lista | 6.Salir")
+        opcion = input("Elige una opción: ")
         
-        if op == "1": insertar_elemento(mis_heroes, herramientas)
-        elif op == "2": buscar_elemento(mis_heroes)
-        elif op == "3": modificar_elemento(mis_heroes, herramientas)
-        elif op == "4": eliminar_elemento(mis_heroes, herramientas)
-        elif op == "5": mostrar_todos(mis_heroes)
-        elif op == "6": 
-            print("Adios.")
+        if opcion == "1": añadir_heroe(mis_heroes, gestor)
+        elif opcion == "2": buscar_heroe(mis_heroes)
+        elif opcion == "3": entrenar_heroe(mis_heroes, gestor)
+        elif opcion == "4": expulsar_heroe(mis_heroes, gestor)
+        elif opcion == "5": ver_gremio(mis_heroes)
+        elif opcion == "6":
+            print("Cerrando el programa...")
             break
         else:
-            print("Opción incorrecta.")
+            print("Opción no válida.")
 
 if __name__ == "__main__":
     menu()
