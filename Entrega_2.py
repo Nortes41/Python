@@ -2,26 +2,26 @@ import json
 import logging
 from datetime import datetime
 
-# Configuracion del sistema de logs para registrar errores
+# Configuracion del log (Requisito: Logging y Examen Ej.4)
 logging.basicConfig(
     filename='registro_gremio.log',
     level=logging.INFO,
     format='%(asctime)s - %(message)s'
 )
 
-# --- CLASES ---
+# --- 1. CLASES Y HERENCIA (Requisito: POO y Examen Ej.1) ---
 
 class Heroe:
     """
-    Clase principal que representa a un miembro normal del gremio.
+    Clase base que representa un elemento principal del proyecto (Jugador/Personaje).
     """
     def __init__(self, nombre, nivel):
         self.nombre = nombre
         self.nivel = nivel
-        self.tipo = "Normal" # Nos ayuda a diferenciar clases al guardar
+        self.tipo = "Normal" # Necesario para reconstruir el objeto al leer JSON
 
     def to_dict(self):
-        """Convierte el objeto en un diccionario para poder guardarlo en JSON."""
+        """Convierte el objeto a diccionario para guardarlo en JSON."""
         return {
             "tipo": self.tipo,
             "nombre": self.nombre,
@@ -31,75 +31,68 @@ class Heroe:
     def __str__(self):
         return f"Recluta: {self.nombre} | Nivel: {self.nivel}"
 
-# Clase Hija (Herencia)
 class HeroeVeterano(Heroe):
     """
-    Subclase para heroes especiales. Hereda de Heroe y añade batallas ganadas.
+    Subclase (Herencia). Añade un atributo extra 'batallas_ganadas'.
     """
     def __init__(self, nombre, nivel, batallas_ganadas):
-        # Llamamos al constructor de la clase padre (Heroe)
-        super().__init__(nombre, nivel)
+        super().__init__(nombre, nivel) # Aprovechamos el init del padre
         self.batallas_ganadas = batallas_ganadas
         self.tipo = "Veterano"
 
     def to_dict(self):
-        # Primero obtenemos los datos base del padre
+        # Usamos el diccionario del padre y añadimos lo nuestro
         data = super().to_dict()
-        # Añadimos el dato exclusivo de esta clase
         data["batallas_ganadas"] = self.batallas_ganadas
         return data
 
     def __str__(self):
-        # Sobrescribimos el metodo para que se muestre diferente
         return f"[VETERANO] {self.nombre} | Nivel: {self.nivel} | Batallas: {self.batallas_ganadas}"
 
-# --- GESTION DE ARCHIVOS ---
+# --- 2. GESTIÓN DE FICHEROS (Requisito: JSON y Examen Ej.2) ---
 
 class GestionGremio:
     """
-    Clase encargada de leer y escribir en el archivo JSON.
+    Clase encargada de la persistencia de datos (Guardar/Cargar).
     """
     def __init__(self):
         self.archivo = "datos_gremio.json"
 
     def cargar(self):
-        """Lee el JSON y convierte los datos en una lista de objetos."""
+        """Lee el JSON y convierte los diccionarios en objetos Heroe o HeroeVeterano."""
         try:
             f = open(self.archivo, 'r')
             contenido = json.load(f)
             f.close()
             
-            # Sacamos la lista de items del diccionario global
+            # Recuperamos la lista dentro de la estructura global
             datos_lista = contenido.get("items", [])
             
             lista_objetos = []
             for d in datos_lista:
-                # Logica para saber que tipo de objeto crear (Polimorfismo)
+                # Logica para instanciar la clase correcta
                 if d.get("tipo") == "Veterano":
                     h = HeroeVeterano(d['nombre'], d['nivel'], d['batallas_ganadas'])
                 else:
                     h = Heroe(d['nombre'], d['nivel'])
                 lista_objetos.append(h)
                 
-            print(f"Datos cargados. Fecha: {contenido.get('fecha_ultimo_guardado', '-')}")
+            print(f"--> Datos cargados. Ultimo guardado: {contenido.get('fecha_ultimo_guardado', '-')}")
             return lista_objetos
-            
         except FileNotFoundError:
-            # Si el archivo no existe, devolvemos una lista vacia
             return []
         except Exception as e:
             print(f"Error al cargar: {e}")
             return []
 
     def guardar(self, lista_heroes):
-        """Guarda la lista de objetos y la fecha actual en el JSON."""
+        """Guarda la lista y la fecha actual en el JSON (Estructura global)."""
         try:
-            # Paso 1: Convertir objetos a diccionarios
             lista_dicts = []
             for h in lista_heroes:
                 lista_dicts.append(h.to_dict())
             
-            # Paso 2: Crear estructura con metadatos (fecha)
+            # Estructura compleja pedida en el examen (fecha + items)
             datos_globales = {
                 "fecha_ultimo_guardado": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
                 "items": lista_dicts
@@ -111,24 +104,26 @@ class GestionGremio:
         except Exception as e:
             print(f"Error al guardar: {e}")
 
-# --- FUNCIONES DEL PROGRAMA ---
+# --- 3. FUNCIONES PRINCIPALES (Requisito: 5 funciones obligatorias) ---
 
-def añadir_heroe(lista, gestor):
-    """Pide datos al usuario y añade un nuevo heroe a la lista."""
-    print("\n--- NUEVO HEROE ---")
+def insertar_heroe(lista, gestor):
+    """
+    Funcion 1: Añadir elemento.
+    Pregunta tipo (Normal/Especial) y valida inputs.
+    """
+    print("\n--- NUEVO REGISTRO ---")
     print("1. Recluta Normal")
-    print("2. Veterano")
-    tipo = input("Opcion (1/2): ")
+    print("2. Veterano (Clase Especial)")
+    tipo = input("Elige opcion: ")
     
     nom = input("Nombre: ")
     if nom == "":
-        print("El nombre es obligatorio.")
+        print("Error: El nombre no puede estar vacio.")
         return
 
     try:
-        niv = int(input("Nivel: "))
+        niv = int(input("Nivel: ")) # Try/Except para validar entero
         
-        # Dependiendo de la opcion creamos una clase u otra
         if tipo == "2":
             batallas = int(input("Batallas ganadas: "))
             nuevo = HeroeVeterano(nom, niv, batallas)
@@ -136,103 +131,133 @@ def añadir_heroe(lista, gestor):
             nuevo = Heroe(nom, niv)
             
         lista.append(nuevo)
-        gestor.guardar(lista) # Guardamos cada vez que hay cambios
-        print("Guardado correctamente.")
+        gestor.guardar(lista)
+        print("Heroe añadido con exito.")
         
     except ValueError:
-        print("Error: Introduce numeros validos.")
+        print("Error: Debes introducir un numero valido para el nivel/batallas.")
 
 def buscar_heroe(lista):
-    """Busca heroes por nombre (busqueda parcial) y muestra resultados."""
-    print("\n--- BUSCAR ---")
-    texto = input("Nombre a buscar: ").lower()
+    """
+    Funcion 2: Buscar elemento.
+    Implementa Busqueda Parcial y Logging (Examen Ej.4).
+    """
+    print("\n--- BUSCADOR ---")
+    texto = input("Introduce nombre (o parte del nombre): ").lower()
     encontrados = []
 
     for h in lista:
-        # Busqueda parcial: miramos si el texto esta DENTRO del nombre
         if texto in h.nombre.lower():
             encontrados.append(h)
 
     if len(encontrados) > 0:
-        print(f"\nResultados ({len(encontrados)}):")
+        print(f"\nSe han encontrado {len(encontrados)} coincidencias:")
         for h in encontrados:
             print(h)
     else:
-        print("No se encontraron coincidencias.")
-        # Registramos el fallo en el log
-        logging.info(f"Busqueda sin exito: '{texto}'")
+        print("No se ha encontrado nadie.")
+        logging.info(f"Busqueda fallida: '{texto}'")
 
-def generar_reporte(lista):
-    """Muestra estadisticas y la lista ordenada."""
-    print("\n--- INFORME ---")
-    if len(lista) == 0:
-        print("La lista esta vacia.")
-        return
-
-    # 1. Ordenar por nivel (de mayor a menor)
-    # Usamos lambda para indicar que queremos ordenar usando el atributo 'nivel'
-    lista_ordenada = sorted(lista, key=lambda x: x.nivel, reverse=True)
+def modificar_heroe(lista, gestor):
+    """
+    Funcion 3: Modificar elemento.
+    Permite cambiar el nivel de un heroe existente.
+    """
+    print("\n--- MODIFICAR NIVEL ---")
+    buscado = input("Nombre exacto del heroe a modificar: ")
     
-    print("Ranking por Nivel:")
-    for h in lista_ordenada:
-        print(f"- {h.nombre} (Nv. {h.nivel})")
-
-    # 2. Calcular promedio
-    suma_niveles = 0
     for h in lista:
-        suma_niveles = suma_niveles + h.nivel
-    
-    promedio = suma_niveles / len(lista)
-    
-    # 3. Contar cuantos veteranos hay usando isinstance
-    num_veteranos = 0
-    for h in lista:
-        if isinstance(h, HeroeVeterano):
-            num_veteranos = num_veteranos + 1
-
-    print("\nResumen:")
-    print(f"Total heroes: {len(lista)}")
-    print(f"Nivel medio: {promedio:.2f}")
-    print(f"Veteranos: {num_veteranos}")
+        if h.nombre.lower() == buscado.lower():
+            print(f"Encontrado: {h}")
+            try:
+                nuevo_nivel = int(input("Introduce el nuevo nivel: "))
+                h.nivel = nuevo_nivel
+                gestor.guardar(lista)
+                print("Nivel actualizado correctamente.")
+                return
+            except ValueError:
+                print("Error: El nivel debe ser un numero.")
+                return
+                
+    print("Error: No existe un heroe con ese nombre.")
 
 def eliminar_heroe(lista, gestor):
-    """Busca un heroe por nombre exacto y lo elimina."""
+    """
+    Funcion 4: Eliminar elemento.
+    Borra un heroe de la lista si existe.
+    """
     print("\n--- ELIMINAR ---")
-    buscar = input("Nombre completo: ")
+    buscado = input("Nombre del heroe a expulsar: ")
+    
     for h in lista:
-        if h.nombre.lower() == buscar.lower():
+        if h.nombre.lower() == buscado.lower():
             lista.remove(h)
             gestor.guardar(lista)
-            print("Eliminado.")
+            print(f"{h.nombre} ha sido eliminado del gremio.")
             return
-    print("No existe.")
+            
+    print("No se encontro ese nombre.")
 
-# --- MENU ---
+def mostrar_todos_reporte(lista):
+    """
+    Funcion 5: Mostrar todos (Formato Reporte).
+    Cumple 'Mostrar todos' del proyecto y 'Reporte' del Examen Ej.3.
+    """
+    print("\n--- INFORME DEL GREMIO ---")
+    if not lista:
+        print("El gremio esta vacio.")
+        return
+
+    # Ordenacion (Examen: sorted + lambda)
+    lista_ordenada = sorted(lista, key=lambda x: x.nivel, reverse=True)
+    
+    print("LISTADO (Ordenado por Nivel):")
+    for h in lista_ordenada:
+        print(f"- {h.nombre} (Nivel {h.nivel})")
+
+    # Calculos estadisticos (Examen)
+    suma_niveles = 0
+    num_veteranos = 0
+    for h in lista:
+        suma_niveles = suma_niveles + h.nivel
+        if isinstance(h, HeroeVeterano):
+            num_veteranos = num_veteranos + 1
+            
+    promedio = suma_niveles / len(lista)
+
+    print("\nESTADISTICAS:")
+    print(f"Total miembros: {len(lista)}")
+    print(f"Nivel promedio: {promedio:.2f}")
+    print(f"Veteranos en filas: {num_veteranos}")
+
+# --- 4. MENU INTERACTIVO ---
 
 def menu():
     gestor = GestionGremio()
     mi_plantilla = gestor.cargar()
     
     while True:
-        print("\n=== GREMIO ===")
-        print("1. Añadir")
-        print("2. Buscar")
-        print("3. Informe")
-        print("4. Eliminar")
-        print("5. Salir")
+        print("\n=== GESTION DE GREMIO (PROYECTO FINAL) ===")
+        print("1. Añadir Heroe")
+        print("2. Buscar Heroe")
+        print("3. Modificar Heroe")
+        print("4. Eliminar Heroe")
+        print("5. Mostrar Informe (Listado)")
+        print("6. Salir")
         
-        opcion = input("Elige: ")
+        opcion = input("Selecciona una opcion: ")
         
-        if opcion == "1": añadir_heroe(mi_plantilla, gestor)
+        if opcion == "1": insertar_heroe(mi_plantilla, gestor)
         elif opcion == "2": buscar_heroe(mi_plantilla)
-        elif opcion == "3": generar_reporte(mi_plantilla)
+        elif opcion == "3": modificar_heroe(mi_plantilla, gestor)
         elif opcion == "4": eliminar_heroe(mi_plantilla, gestor)
-        elif opcion == "5":
+        elif opcion == "5": mostrar_todos_reporte(mi_plantilla)
+        elif opcion == "6":
             gestor.guardar(mi_plantilla)
-            print("Saliendo...")
+            print("Guardando datos... ¡Adios!")
             break
         else:
-            print("Opcion incorrecta.")
+            print("Opcion no valida. Intentalo de nuevo.")
 
 if __name__ == "__main__":
     menu()
