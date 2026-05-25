@@ -8,18 +8,22 @@ logging.basicConfig(
     format='%(asctime)s - %(message)s'
 )
 
+# Catalogo de habilidades disponibles por tipo de heroe
 HABILIDADES_DISPONIBLES = {
     "Normal": ["Espadazo", "Escudo", "Flechazo", "Curación básica", "Sigilo", "Golpe en área"],
     "Veterano": ["Golpe maestro", "Torbellino", "Barrera arcana", "Llamada de guerra",
                  "Contraataque", "Ráfaga de fuego", "Manto de sombras", "Juicio divino"]
 }
 
+# --- CLASES Y OBJETOS ---
 
 class Heroe:
+    """Clase para los reclutas normales del gremio"""
     def __init__(self, nombre, nivel, habilidades=None):
         self.nombre = nombre
         self.nivel = nivel
         self.tipo = "Normal"
+        # Si no se pasan habilidades, lista vacía
         self.habilidades = habilidades if habilidades is not None else []
 
     def to_dict(self):
@@ -36,6 +40,7 @@ class Heroe:
 
 
 class HeroeVeterano(Heroe):
+    """Clase hija. Hereda de Heroe y tiene un dato extra (batallas)"""
     def __init__(self, nombre, nivel, batallas_ganadas, habilidades=None):
         super().__init__(nombre, nivel, habilidades)
         self.batallas_ganadas = batallas_ganadas
@@ -52,11 +57,14 @@ class HeroeVeterano(Heroe):
                 f"| Batallas: {self.batallas_ganadas} | Habilidades: [{hab_str}]")
 
 
+# --- GESTION DEL ARCHIVO JSON ---
+
 class GestionGremio:
     def __init__(self):
         self.archivo = "datos_gremio.json"
 
     def cargar(self):
+        """Intenta leer el archivo JSON y devuelve una lista de objetos"""
         try:
             f = open(self.archivo, 'r')
             contenido = json.load(f)
@@ -66,7 +74,9 @@ class GestionGremio:
             lista_objetos = []
 
             for d in datos_lista:
+                # Cargamos habilidades si existen (compatibilidad con archivos antiguos)
                 habilidades = d.get("habilidades", [])
+
                 if d.get("tipo") == "Veterano":
                     h = HeroeVeterano(d['nombre'], d['nivel'], d['batallas_ganadas'], habilidades)
                 else:
@@ -85,12 +95,15 @@ class GestionGremio:
             return []
 
     def guardar(self, lista_heroes):
+        """Guarda todo en el JSON con la fecha actual"""
         try:
             lista_dicts = [h.to_dict() for h in lista_heroes]
+
             datos_globales = {
                 "fecha_ultimo_guardado": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
                 "items": lista_dicts
             }
+
             f = open(self.archivo, 'w')
             json.dump(datos_globales, f, indent=4, ensure_ascii=False)
             f.close()
@@ -99,8 +112,12 @@ class GestionGremio:
             logging.error(f"Error grave guardando datos: {e}")
 
 
+# --- GESTION DE HABILIDADES ---
+
 def elegir_habilidades(tipo_heroe):
+    """Muestra el catálogo y permite elegir habilidades"""
     catalogo = HABILIDADES_DISPONIBLES.get(tipo_heroe, [])
+
     print(f"\nHabilidades disponibles para {tipo_heroe}:")
     for i, hab in enumerate(catalogo, 1):
         print(f"  {i}. {hab}")
@@ -123,10 +140,12 @@ def elegir_habilidades(tipo_heroe):
                 print("Opción fuera de rango.")
         except ValueError:
             print("Escribe un número.")
+
     return seleccionadas
 
 
 def gestionar_habilidades(lista, gestor):
+    """Menú para añadir o quitar habilidades a un héroe existente"""
     print("\n--- GESTIONAR HABILIDADES ---")
     buscado = input("Nombre exacto del héroe: ")
 
@@ -139,14 +158,18 @@ def gestionar_habilidades(lista, gestor):
             opcion = input("Elige: ")
 
             if opcion == "1":
+                # Mostrar solo las que aún no tiene
                 catalogo = HABILIDADES_DISPONIBLES.get(h.tipo, [])
                 disponibles = [hab for hab in catalogo if hab not in h.habilidades]
+
                 if not disponibles:
                     print("Ya tiene todas las habilidades disponibles para su tipo.")
                     return
+
                 print(f"\nHabilidades que puede aprender:")
                 for i, hab in enumerate(disponibles, 1):
                     print(f"  {i}. {hab}")
+
                 try:
                     num = int(input("Elige una (número): "))
                     if 1 <= num <= len(disponibles):
@@ -164,9 +187,11 @@ def gestionar_habilidades(lista, gestor):
                 if not h.habilidades:
                     print("Este héroe no tiene habilidades que quitar.")
                     return
+
                 print(f"\nHabilidades actuales:")
                 for i, hab in enumerate(h.habilidades, 1):
                     print(f"  {i}. {hab}")
+
                 try:
                     num = int(input("Elige cuál quitar (número): "))
                     if 1 <= num <= len(h.habilidades):
@@ -181,8 +206,11 @@ def gestionar_habilidades(lista, gestor):
             else:
                 print("Opción incorrecta.")
             return
+
     print("No existe ese héroe.")
 
+
+# --- FUNCIONES DEL PROGRAMA ---
 
 def insertar_heroe(lista, gestor):
     print("\n--- NUEVO HEROE ---")
@@ -197,6 +225,8 @@ def insertar_heroe(lista, gestor):
 
     try:
         niv = int(input("Nivel: "))
+
+        # Preguntar si quiere asignar habilidades ahora
         tipo = "Veterano" if opcion == "2" else "Normal"
         print(f"\n¿Quieres asignar habilidades ahora?")
         print("  1. Sí")
@@ -275,6 +305,7 @@ def mostrar_informe(lista):
         return
 
     lista_ordenada = sorted(lista, key=lambda x: x.nivel, reverse=True)
+
     print("Ranking por Nivel:")
     for h in lista_ordenada:
         print(f"- {h.nombre} (Nv. {h.nivel})")
@@ -283,6 +314,7 @@ def mostrar_informe(lista):
     num_veteranos = sum(1 for h in lista if isinstance(h, HeroeVeterano))
     media = suma_niveles / len(lista)
 
+    # Habilidad más común
     todas_habs = []
     for h in lista:
         todas_habs.extend(h.habilidades)
@@ -295,17 +327,20 @@ def mostrar_informe(lista):
     if todas_habs:
         hab_mas_comun = max(set(todas_habs), key=todas_habs.count)
         print(f"Habilidad más usada: {hab_mas_comun} ({todas_habs.count(hab_mas_comun)} héroes)")
+
         heroes_sin_hab = sum(1 for h in lista if not h.habilidades)
         if heroes_sin_hab:
             print(f"Héroes sin habilidades: {heroes_sin_hab}")
     else:
         print("Ningún héroe tiene habilidades aún.")
 
+    # Héroe de mayor y menor nivel
     heroe_max = max(lista, key=lambda x: x.nivel)
     heroe_min = min(lista, key=lambda x: x.nivel)
     print(f"\nHéroe de mayor nivel: {heroe_max.nombre} (Nv. {heroe_max.nivel})")
     print(f"Héroe de menor nivel: {heroe_min.nombre} (Nv. {heroe_min.nivel})")
 
+    # Héroe(s) con más habilidades
     max_habs = max(len(h.habilidades) for h in lista)
     if max_habs > 0:
         heroes_max_habs = [h for h in lista if len(h.habilidades) == max_habs]
@@ -313,6 +348,7 @@ def mostrar_informe(lista):
         for h in heroes_max_habs:
             print(f"  - {h.nombre}: {', '.join(h.habilidades)}")
 
+    # Veteranos aparte ordenados por batallas
     veteranos = [h for h in lista if isinstance(h, HeroeVeterano)]
     if veteranos:
         print("\nVeteranos (por batallas):")
@@ -320,7 +356,10 @@ def mostrar_informe(lista):
             print(f"  - {v.nombre} | Nivel: {v.nivel} | Batallas: {v.batallas_ganadas}")
 
 
+# --- FUNCIONES NUEVAS ---
+
 def filtrar_por_nivel(lista):
+    """Muestra héroes que igualan o superan un nivel mínimo"""
     print("\n--- FILTRAR POR NIVEL ---")
     try:
         nivel_min = int(input("Nivel mínimo: "))
@@ -336,6 +375,7 @@ def filtrar_por_nivel(lista):
 
 
 def buscar_por_habilidad(lista):
+    """Busca héroes que tengan una habilidad concreta"""
     print("\n--- BUSCAR POR HABILIDAD ---")
     hab = input("Habilidad a buscar: ").lower()
     resultado = [h for h in lista if any(hab in habilidad.lower() for habilidad in h.habilidades)]
@@ -349,6 +389,7 @@ def buscar_por_habilidad(lista):
 
 
 def contar_habilidades(lista):
+    """Muestra cuántos héroes tienen habilidades y cuántos no"""
     print("\n--- HABILIDADES ---")
     con_habilidad = [h for h in lista if h.habilidades]
     sin_habilidad = [h for h in lista if not h.habilidades]
@@ -357,6 +398,7 @@ def contar_habilidades(lista):
 
 
 def subir_nivel_todos(lista, gestor):
+    """Sube el nivel de todos los héroes en la cantidad indicada"""
     print("\n--- SUBIR NIVEL A TODOS ---")
     try:
         cantidad = int(input("¿Cuántos niveles subir? "))
@@ -370,6 +412,7 @@ def subir_nivel_todos(lista, gestor):
 
 
 def exportar_informe(lista):
+    """Guarda el informe en un archivo .txt con la fecha actual"""
     print("\n--- EXPORTAR INFORME ---")
     if not lista:
         print("La lista está vacía, no hay nada que exportar.")
@@ -389,7 +432,41 @@ def exportar_informe(lista):
         print(f"Error al exportar: {e}")
 
 
+def listado_alfabetico(lista):
+    """Muestra todos los héroes ordenados alfabéticamente por nombre"""
+    print("\n--- LISTADO ALFABÉTICO ---")
+    lista_ordenada = sorted(lista, key=lambda x: x.nombre)
+    for h in lista_ordenada:
+        print(h)
+
+
+def resetear_nivel(lista, gestor):
+    """Pone el nivel de todos los héroes a 1 tras confirmación"""
+    print("\n--- RESETEAR NIVEL ---")
+    confirmacion = input("¿Seguro? (s/n): ")
+    if confirmacion.lower() == "s":
+        for h in lista:
+            h.nivel = 1
+        gestor.guardar(lista)
+        print("Niveles reiniciados.")
+        logging.info("Niveles de todos los héroes reiniciados.")
+    else:
+        print("Operación cancelada.")
+
+
+def eliminar_sin_habilidades(lista, gestor):
+    """Elimina todos los héroes que no tengan ninguna habilidad"""
+    print("\n--- ELIMINAR SIN HABILIDADES ---")
+    sin_habs = [h for h in lista if not h.habilidades]
+    for h in sin_habs:
+        lista.remove(h)
+    gestor.guardar(lista)
+    print(f"Eliminados {len(sin_habs)} héroes.")
+    logging.info(f"Eliminados {len(sin_habs)} héroes sin habilidades.")
+
+
 def menu_busqueda(lista):
+    """Búsqueda avanzada con filtros: nombre, nivel, tipo o habilidad"""
     print("\n--- BÚSQUEDA CON FILTROS ---")
     print("1. Por nombre")
     print("2. Por nivel mínimo")
@@ -400,7 +477,6 @@ def menu_busqueda(lista):
     if opcion == "1":
         texto = input("Nombre a buscar: ").lower()
         resultado = [h for h in lista if texto in h.nombre.lower()]
-
     elif opcion == "2":
         try:
             nivel_min = int(input("Nivel mínimo: "))
@@ -408,15 +484,12 @@ def menu_busqueda(lista):
         except ValueError:
             print("Error: escribe un número.")
             return
-
     elif opcion == "3":
         tipo = input("Tipo (Normal/Veterano): ").capitalize()
         resultado = [h for h in lista if h.tipo == tipo]
-
     elif opcion == "4":
         hab = input("Habilidad a buscar: ").lower()
         resultado = [h for h in lista if any(hab in habilidad.lower() for habilidad in h.habilidades)]
-
     else:
         print("Opción incorrecta.")
         return
@@ -428,6 +501,8 @@ def menu_busqueda(lista):
     else:
         print("No se encontró ningún héroe con ese filtro.")
 
+
+# --- MENU PRINCIPAL ---
 
 def menu():
     logging.info("--- Inicio del programa ---")
@@ -449,7 +524,10 @@ def menu():
         print("10. Subir nivel a todos")
         print("11. Exportar informe a .txt")
         print("12. Búsqueda con filtros")
-        print("13. Salir")
+        print("13. Listado alfabético")
+        print("14. Resetear nivel")
+        print("15. Eliminar sin habilidades")
+        print("16. Salir")
 
         opcion = input("Elige una opción: ")
 
@@ -465,7 +543,10 @@ def menu():
         elif opcion == "10": subir_nivel_todos(mi_plantilla, gestor)
         elif opcion == "11": exportar_informe(mi_plantilla)
         elif opcion == "12": menu_busqueda(mi_plantilla)
-        elif opcion == "13":
+        elif opcion == "13": listado_alfabetico(mi_plantilla)
+        elif opcion == "14": resetear_nivel(mi_plantilla, gestor)
+        elif opcion == "15": eliminar_sin_habilidades(mi_plantilla, gestor)
+        elif opcion == "16":
             gestor.guardar(mi_plantilla)
             print("Guardando... ¡Adiós!")
             logging.info("--- Fin del programa ---")
